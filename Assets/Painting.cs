@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System.Collections.Generic;
+using UnityEngine;
 using UnityEngine.UI;
 using Random = UnityEngine.Random;
  
@@ -19,11 +20,18 @@ public class Painting : MonoBehaviour
     private int b = 0;
     private float[] speedArray = new float[4];
     private int s = 0;
-    public int num = 50;
+    [SerializeField]
+    private int num = 50; //画的两点之间插件点的个数
+    [SerializeField]
+    private float widthPower = 0.5f; //关联粗细
  
     Vector2 rawMousePosition;            //raw图片的左下角对应鼠标位置
     float rawWidth;                               //raw图片宽度
     float rawHeight;                              //raw图片长度
+    [SerializeField]
+    private const int maxCancleStep = 5;  //最大撤销的步骤（越大越耗费内存）
+    [SerializeField]
+    private Stack<RenderTexture> savedList = new Stack<RenderTexture>(maxCancleStep);
     void Start()
     {
  
@@ -45,20 +53,50 @@ public class Painting : MonoBehaviour
     Vector3 endPosition = Vector3.zero;
     void Update()
     {
- 
- 
- 
+        if (Input.GetMouseButtonDown(0))
+        {
+            SaveTexture();
+        }
         if (Input.GetMouseButton(0))
         {
             OnMouseMove(new Vector3(Input.mousePosition.x, Input.mousePosition.y, 0));
         }
         if (Input.GetMouseButtonUp(0))
         {
+
             OnMouseUp();
         }
+
+        if (Input.GetKeyDown(KeyCode.R))
+        {
+            CanclePaint();
+        }
+
+        if (Input.GetKeyDown(KeyCode.C))
+        {
+            OnClickClear();
+        }
+
         DrawImage();
     }
- 
+
+    [SerializeField] private RawImage saveImage;
+    void SaveTexture()
+    {
+        RenderTexture newRenderTexture = new RenderTexture(texRender);
+        Graphics.Blit(texRender,newRenderTexture);
+        savedList.Push(newRenderTexture);
+    }
+
+    void CanclePaint()
+    {
+        if (savedList.Count > 0)
+        {
+            texRender.Release();
+            texRender = savedList.Pop();
+        }
+    }
+
     void OnMouseUp()
     {
         startPosition = Vector3.zero;
@@ -83,7 +121,7 @@ public class Painting : MonoBehaviour
         {
             Scale = 0.05f;
         }
-        return Scale;
+        return Scale * widthPower;
     }
  
     void OnMouseMove(Vector3 pos)
@@ -124,7 +162,7 @@ public class Painting : MonoBehaviour
         float bottom = (destRect.yMin - rawMousePosition.y) * Screen.height / rawHeight + destRect.height * scale / 2.0f;
  
         Graphics.SetRenderTarget(destTexture);
- 
+
         GL.PushMatrix();
         GL.LoadOrtho();
  
@@ -138,11 +176,6 @@ public class Painting : MonoBehaviour
         GL.TexCoord2(1.0f, 0.0f); GL.Vertex3(right / Screen.width, top / Screen.height, 0);
         GL.TexCoord2(1.0f, 1.0f); GL.Vertex3(right / Screen.width, bottom / Screen.height, 0);
         GL.TexCoord2(0.0f, 1.0f); GL.Vertex3(left / Screen.width, bottom / Screen.height, 0);
-        //GL.TexCoord2(0.0f, 0.0f); GL.Vertex3(left / 1000, top / 1000, 0);
-        //GL.TexCoord2(1.0f, 0.0f); GL.Vertex3(right / 1000, top / 1000, 0);
-        //GL.TexCoord2(1.0f, 1.0f); GL.Vertex3(right / 1000, bottom / 1000, 0);
-        //GL.TexCoord2(0.0f, 1.0f); GL.Vertex3(left / 1000, bottom / 1000, 0);
- 
  
         GL.End();
         GL.PopMatrix();
@@ -155,9 +188,10 @@ public class Painting : MonoBehaviour
     public void OnClickClear()
     {
         Clear(texRender);
+        savedList.Clear();
     }
  
-    //二阶贝塞尔曲线
+    //二阶贝塞尔曲线 效果不好，改用下面三阶
     public void TwoOrderBézierCurse(Vector3 pos, float distance)
     {
         PositionArray[a] = pos;

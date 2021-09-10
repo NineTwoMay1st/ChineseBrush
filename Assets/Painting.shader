@@ -51,12 +51,13 @@ Shader "Painting"
   
             sampler2D _MainTex;  
   
-            fixed4 frag(v2f IN) : SV_Target  
-            {  
-                float4 col = _Color * tex2D(_MainTex, IN.texcoord);  
-                col.rgb *= col.a;  
-                return col;  
-            }  
+            fixed4 frag(v2f IN) : SV_Target{ 
+                float4 texColor = tex2D(_MainTex, IN.texcoord); 
+                float value = step(_Color.r + _Color.g + _Color.b, 0.1f); 
+                float4 col = (1 - texColor) * (1 - value) * _Color + texColor * value; 
+                col.a = texColor.a; col.rgb *= col.a; 
+                return col; 
+            }
             ENDCG  
         }  
     }  

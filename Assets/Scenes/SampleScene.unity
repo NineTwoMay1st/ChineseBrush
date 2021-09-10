@@ -230,7 +230,9 @@ MonoBehaviour:
   brushTypeTexture: {fileID: 2800000, guid: 3cfa35eaa5b51c84b8acad53e9af8841, type: 3}
   brushColor: {r: 0, g: 0, b: 0, a: 1}
   raw: {fileID: 1347624906}
-  num: 50
+  num: 100
+  widthPower: 1
+  saveImage: {fileID: 0}
 --- !u!20 &519420031
 Camera:
   m_ObjectHideFlags: 0
